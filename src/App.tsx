@@ -244,18 +244,81 @@ const DashboardView = ({ analytics, timeRange, setTimeRange }) => {
 // B. HISTORY
 const HistoryView = ({ transactions, onDelete }) => {
   const [deleteId, setDeleteId] = useState(null);
-  const handleDelete = (id) => { if (deleteId === id) { onDelete(id); setDeleteId(null); } else { setDeleteId(id); setTimeout(() => setDeleteId(null), 3000); } };
+  // 1. Aggiungiamo uno stato per tracciare quale card è attualmente espansa
+  const [expandedId, setExpandedId] = useState(null);
+
+  const handleDelete = (e, id) => {
+    e.stopPropagation(); // 2. Interrompiamo l'Event Bubbling per non espandere la card al click su "Elimina"
+    if (deleteId === id) { 
+      onDelete(id); 
+      setDeleteId(null); 
+    } else { 
+      setDeleteId(id); 
+      setTimeout(() => setDeleteId(null), 3000); 
+    } 
+  };
+
+  const toggleExpand = (id) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
+
   return (
     <div className="pb-32 animate-in fade-in space-y-4">
-      <div className="flex items-center justify-between mb-6 px-2"><h2 className="text-xl font-bold text-white tracking-tight">Storico Movimenti</h2><span className="bg-slate-800 text-slate-400 text-[10px] font-bold uppercase px-3 py-1.5 rounded-lg border border-white/5">{transactions.length} records</span></div>
+      <div className="flex items-center justify-between mb-6 px-2">
+        <h2 className="text-xl font-bold text-white tracking-tight">Storico Movimenti</h2>
+        <span className="bg-slate-800 text-slate-400 text-[10px] font-bold uppercase px-3 py-1.5 rounded-lg border border-white/5">{transactions.length} records</span>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {transactions.map(t => (
-          <div key={t.id} className="group relative flex items-center bg-slate-900/60 backdrop-blur-md border border-white/5 p-4 rounded-2xl hover:bg-slate-800/60 transition-all duration-200 hover:border-white/10">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mr-4 border border-white/5 shadow-lg ${t.type === 'income' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>{t.type === 'income' ? <TrendingUp size={20}/> : <TrendingDown size={20}/>}</div>
-            <div className="flex-1 min-w-0"><h4 className="text-slate-200 font-bold text-sm truncate">{t.description}</h4><div className="flex items-center gap-2 mt-1.5"><span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{formatDate(t.createdAt)}</span>{t.type === 'expense' && (<span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${t.cat === 'NEEDS' ? 'border-blue-500/30 text-blue-400' : t.cat === 'WANTS' ? 'border-purple-500/30 text-purple-400' : 'border-slate-600 text-slate-500'}`}>{t.cat === 'NEEDS' ? 'Needs' : t.cat === 'WANTS' ? 'Wants' : 'Other'}</span>)}</div></div>
-            <div className="text-right pl-2"><div className={`font-mono font-bold text-sm ${t.type === 'income' ? 'text-emerald-400' : 'text-slate-200'}`}>{t.type === 'income' ? '+' : '-'}{formatCurrencySimple(t.amount)}</div><button onClick={() => handleDelete(t.id)} className={`mt-2 text-[10px] font-bold uppercase tracking-wider transition-all duration-200 ${deleteId === t.id ? 'text-rose-500 animate-pulse' : 'text-slate-600 hover:text-rose-400 opacity-0 group-hover:opacity-100'}`}>{deleteId === t.id ? 'Confermi?' : 'Elimina'}</button></div>
+        {transactions.map(t => {
+          const isExpanded = expandedId === t.id;
+          
+          return (
+          <div 
+            key={t.id} 
+            onClick={() => toggleExpand(t.id)}
+            // Aggiunto cursor-pointer e items-start per gestire bene l'allineamento su più righe
+            className="group relative flex items-start bg-slate-900/60 backdrop-blur-md border border-white/5 p-4 rounded-2xl hover:bg-slate-800/60 transition-all duration-200 hover:border-white/10 cursor-pointer"
+          >
+            {/* Icona */}
+            <div className={`shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center mr-4 border border-white/5 shadow-lg ${t.type === 'income' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+              {t.type === 'income' ? <TrendingUp size={20}/> : <TrendingDown size={20}/>}
+            </div>
+            
+            {/* Area Testo Centrale */}
+            <div className="flex-1 min-w-0 pt-0.5">
+              {/* 3. Logica di visualizzazione elegante: 
+                 Se espanso -> mostra tutto il testo andando a capo.
+                 Se chiuso -> usa line-clamp-2 (mostra max 2 righe, poi taglia). 
+                 Se preferisci 1 sola riga, sostituisci 'line-clamp-2' con 'truncate' 
+              */}
+              <h4 className={`text-slate-200 font-bold text-sm transition-all duration-300 ${isExpanded ? 'whitespace-normal break-words' : 'line-clamp-2'}`}>
+                {t.description}
+              </h4>
+              <div className="flex items-center gap-2 mt-1.5">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{formatDate(t.createdAt)}</span>
+                {t.type === 'expense' && (
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${t.cat === 'NEEDS' ? 'border-blue-500/30 text-blue-400' : t.cat === 'WANTS' ? 'border-purple-500/30 text-purple-400' : 'border-slate-600 text-slate-500'}`}>
+                    {t.cat === 'NEEDS' ? 'Needs' : t.cat === 'WANTS' ? 'Wants' : 'Other'}
+                  </span>
+                )}
+              </div>
+            </div>
+            
+            {/* Importo e Azioni */}
+            <div className="text-right pl-2 flex flex-col justify-between items-end h-full">
+              <div className={`font-mono font-bold text-sm ${t.type === 'income' ? 'text-emerald-400' : 'text-slate-200'}`}>
+                {t.type === 'income' ? '+' : '-'}{formatCurrencySimple(t.amount)}
+              </div>
+              {/* Passiamo 'e' alla funzione per fermare la propagazione del click */}
+              <button 
+                onClick={(e) => handleDelete(e, t.id)} 
+                className={`mt-2 text-[10px] font-bold uppercase tracking-wider transition-all duration-200 ${deleteId === t.id ? 'text-rose-500 animate-pulse' : 'text-slate-600 hover:text-rose-400 opacity-0 group-hover:opacity-100'}`}
+              >
+                {deleteId === t.id ? 'Confermi?' : 'Elimina'}
+              </button>
+            </div>
           </div>
-        ))}
+        )})}
       </div>
     </div>
   );
