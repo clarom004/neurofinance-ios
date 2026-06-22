@@ -291,7 +291,7 @@ const HistoryView = ({ transactions, onDelete }) => {
                  Se chiuso -> usa line-clamp-2 (mostra max 2 righe, poi taglia). 
                  Se preferisci 1 sola riga, sostituisci 'line-clamp-2' con 'truncate' 
               */}
-              <h4 className={`text-slate-200 font-bold text-sm transition-all duration-300 ${isExpanded ? 'whitespace-normal break-words' : 'line-clamp-2'}`}>
+              <h4 className={`text-slate-200 font-bold text-sm transition-all duration-300 ${isExpanded ? 'whitespace-normal break-words' : 'truncate'}`}>
                 {t.description}
               </h4>
               <div className="flex items-center gap-2 mt-1.5">
